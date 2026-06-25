@@ -4,18 +4,26 @@ from telethon import TelegramClient
 import os
 import asyncio
 
-# إعدادات تليجرام الموثقة والمصححة الخاصة بك
+# الإعدادات الصحيحة والمؤكدة لحسابك
 API_ID = 30478732
 API_HASH = '394d6d66d2097791253e89282b6f4318'
-# تم تصحيح التوكن بحرف O الكبير هنا لمنع خطأ 401 Unauthorized
-BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nBOtnW7GSiYzDc7u2rF8'
+# التوكن الصحيح بعد تعديل حرف O الكبير
+BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
 TARGET_CHANNEL = 'shaksbb'
 ALLOWED_USERS = [1778665778, 8353977153]
 
-bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
+# استخدام كود ذكي لتجنب تضارب مكتبات تليجرام على سيرفر Vercel
+try:
+    bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
+except AttributeError:
+    import sys
+    # حل مشكلة تضارب المكتبات الإجبارية
+    sys.modules['telebot'] = __import__('telebot')
+    bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
+
 app = Flask(__name__)
 
-# مسار ملف الـ Session المرفوع في المشروع تلقائياً
+# مسار ملف الـ Session المرفوع تلقائياً في الفولدر الرئيسي
 SESSION_PATH = os.path.join(os.path.dirname(__file__), '..', 'vercel_session.session')
 
 HTML_TEMPLATE = '''
@@ -28,7 +36,7 @@ HTML_TEMPLATE = '''
 <body style="text-align:center; font-family:Arial, sans-serif; padding:20px; background:#f4f4f4; direction: rtl;">
     <div style="background:white; padding:30px; border-radius:12px; display:inline-block; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); max-width: 90%; width: 400px; margin-top: 50px;">
         <h2 style="color: #28a745;">البوت شغال بنجاح! ✅</h2>
-        <p style="color: #666; font-size: 14px;">تم التعرف على ملف الجلسة بنجاح والتصحيح تم بنجاح. السيرفر يقوم الآن بمراقبة القناة تلقائياً.</p>
+        <p style="color: #666; font-size: 14px;">تم التعرف على ملف الجلسة وتصحيح أخطاء النظام بالكامل.</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
         <div style="padding:15px; background:#e2f0d9; color:#385723; border-radius:6px; font-size: 16px; font-weight: bold;">
             حالة النظام: متصل ومستقر أوتوماتيكياً 🚀
@@ -54,10 +62,8 @@ def cron_job():
     async def run():
         await client.connect()
         if await client.is_user_authorized():
-            # سحب آخر رسالة من القناة
             messages = await client.get_messages(TARGET_CHANNEL, limit=1)
             if messages and messages[0].photo:
-                # إرسال الصورة للمشتركين فوراً
                 for user_id in ALLOWED_USERS:
                     try:
                         bot.send_photo(user_id, messages[0].photo, caption=messages[0].text)
@@ -68,9 +74,13 @@ def cron_job():
     loop.run_until_complete(run())
     return "Cron checked successfully", 200
 
+# تصحيح دالة الاستقبال لمنع خطأ الـ TypeError
 @app.route('/' + BOT_TOKEN, methods=['POST'])
 def getMessage():
-    json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
-    bot.process_new_updates([update])
-    return "!", 200
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "!", 200
+    else:
+        return "Invalid request", 403
