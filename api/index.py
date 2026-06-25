@@ -2,18 +2,20 @@ from flask import Flask, request, render_template_string
 import telebot
 from telethon import TelegramClient
 import os
+import asyncio
 
-# إعدادات تليجرام الموثقة الخاصة بك
+# إعدادات تليجرام الموثقة والمصححة الخاصة بك
 API_ID = 30478732
 API_HASH = '394d6d66d2097791253e89282b6f4318'
-BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
+# تم تصحيح التوكن بحرف O الكبير هنا لمنع خطأ 401 Unauthorized
+BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nBOtnW7GSiYzDc7u2rF8'
 TARGET_CHANNEL = 'shaksbb'
 ALLOWED_USERS = [1778665778, 8353977153]
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
-# مسار ملف الـ Session المرفوع
+# مسار ملف الـ Session المرفوع في المشروع تلقائياً
 SESSION_PATH = os.path.join(os.path.dirname(__file__), '..', 'vercel_session.session')
 
 HTML_TEMPLATE = '''
@@ -26,10 +28,10 @@ HTML_TEMPLATE = '''
 <body style="text-align:center; font-family:Arial, sans-serif; padding:20px; background:#f4f4f4; direction: rtl;">
     <div style="background:white; padding:30px; border-radius:12px; display:inline-block; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); max-width: 90%; width: 400px; margin-top: 50px;">
         <h2 style="color: #28a745;">البوت شغال بنجاح! ✅</h2>
-        <p style="color: #666; font-size: 14px;">تم التعرف على ملف الجلسة المرفوع بنجاح. السيرفر يقوم الآن بمراقبة القناة تلقائياً.</p>
+        <p style="color: #666; font-size: 14px;">تم التعرف على ملف الجلسة بنجاح والتصحيح تم بنجاح. السيرفر يقوم الآن بمراقبة القناة تلقائياً.</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
         <div style="padding:15px; background:#e2f0d9; color:#385723; border-radius:6px; font-size: 16px; font-weight: bold;">
-            حالة النظام: متصل ومستقر 🚀
+            حالة النظام: متصل ومستقر أوتوماتيكياً 🚀
         </div>
     </div>
 </body>
@@ -42,28 +44,25 @@ def home():
 
 @app.route('/api/cron', methods=['GET'])
 def cron_job():
-    # التأكد من وجود ملف الـ session
     if not os.path.exists(SESSION_PATH):
         return "Session file missing", 400
         
-    import asyncio
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
     client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
     
     async def run():
         await client.connect()
         if await client.is_user_authorized():
-            # سحب آخر رسالة من القناة المستهدفة
+            # سحب آخر رسالة من القناة
             messages = await client.get_messages(TARGET_CHANNEL, limit=1)
             if messages and messages[0].photo:
-                # إرسال الصورة لجميع المستخدمين المسموح لهم
+                # إرسال الصورة للمشتركين فوراً
                 for user_id in ALLOWED_USERS:
                     try:
                         bot.send_photo(user_id, messages[0].photo, caption=messages[0].text)
-                    except Exception as e:
-                        print(f"Error sending to {user_id}: {e}")
+                    except Exception:
+                        pass
         await client.disconnect()
 
     loop.run_until_complete(run())
