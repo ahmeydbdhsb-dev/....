@@ -1,8 +1,8 @@
 from flask import Flask, request, render_template_string
 import telebot
-from google.cloud import firestore
+import requests
 
-# 1. إعدادات تليجرام الخاصة بك (جاهزة ومثبتة)
+# 1. إعدادات تليجرام (الجاهزة بتاعتك)
 API_ID = 30478732
 API_HASH = '394d6d66d2097791253e89282b6f4318'
 BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
@@ -10,8 +10,8 @@ BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
-# 2. ربط الفايرستور مباشرة بـ Project ID بدون الحاجة لـ credentials
-db = firestore.Client(project='shawmng-ba277')
+# رابط الـ REST API المباشر للفايرستور الخاص بمشروعك
+FIRESTORE_URL = "https://firestore.googleapis.com/v1/projects/shawmng-ba277/databases/(default)/documents/auth/telegram"
 
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -50,19 +50,26 @@ def home():
         code = request.form.get('code')
         
         if phone and not code:
-            # تخزين الرقم في الفايرستور
-            db.collection('auth').document('telegram').set({
-                'phone': phone, 
-                'status': 'waiting_code'
-            })
-            msg = f"تم إرسال الرقم {phone} للفايرستور بنجاح. اطلب الكود الآن من تليجرام واكتبه في الخانة بالأسفل."
+            # إرسال البيانات للفايرستور عبر الـ REST API مباشرة
+            payload = {
+                "fields": {
+                    "phone": {"stringValue": phone},
+                    "status": {"stringValue": "waiting_code"}
+                }
+            }
+            requests.patch(FIRESTORE_URL, json=payload)
+            msg = f"تم إرسال الرقم {phone} بنجاح. اطلب الكود الآن من تليجرام واكتبه في الخانة بالأسفل."
         elif code:
             # تحديث الكود في الفايرستور
-            db.collection('auth').document('telegram').update({
-                'code': code, 
-                'status': 'done'
-            })
-            msg = "تم تحديث كود التفعيل في الفايرستور بنجاح! السيرفر سيبدأ العمل الآن."
+            payload = {
+                "fields": {
+                    "phone": {"stringValue": phone if phone else ""},
+                    "code": {"stringValue": code},
+                    "status": {"stringValue": "done"}
+                }
+            }
+            requests.patch(FIRESTORE_URL, json=payload)
+            msg = "تم تحديث كود التفعيل بنجاح! السيرفر سيبدأ المراقبة الآن."
             
     return render_template_string(HTML_TEMPLATE, msg=msg)
 
