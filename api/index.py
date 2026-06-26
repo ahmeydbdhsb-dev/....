@@ -1,34 +1,38 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request
 import telebot
 import os
 
-# الإعدادات: ضع الـ ID الخاص بك هنا
+# الإعدادات
 BOT_TOKEN = '8668088040:AAE3DVD67ZitM04nBOtnW7GSiYzDc7u2rF8'
 ALLOWED_USERS = [1778665778, 8353977153]
+BOT_NAME = "شاومنج 2026"  # اسم حسابك
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
-# رسالة الترحيب "العظمة"
+# رسالة عظمة بالتنسيق الاحترافي
 WELCOME_MSG = (
-    "أهلاً بك في بوت شاومنج 🚀\n\n"
-    "لا تشغل بالك بالامتحان.. نحن هنا لنتولى الأمر.\n"
-    "تصلك الأسئلة والحلول النموذجية هنا في البوت بعد بدء اللجنة بـ 30 دقيقة بالضبط. "
-    "كن مستعداً، فالسرعة والدقة هما عنواننا.\n\n"
-    "ثق في قدراتك، ونحن سنكون سندك في هذه المهمة.\n"
-    "بالتوفيق يا بطل، أنت لها! 💪"
+    f"🌟 **أهلاً بك في بوت {BOT_NAME}** 🚀\n\n"
+    "━━━━━━━━━━━━━━━━━━\n"
+    "⚠️ **لا تشغل بالك بالامتحان.. نحن هنا لنتولى الأمر.**\n\n"
+    "⏰ **تنبيه:** تصلك الأسئلة والحلول النموذجية هنا في البوت بعد بدء اللجنة بـ 30 دقيقة بالضبط.\n"
+    "🎯 **كن مستعداً، فالسرعة والدقة هما عنواننا.**\n"
+    "━━━━━━━━━━━━━━━━━━\n\n"
+    "🛡️ **ثق في قدراتك، ونحن سنكون سندك في هذه المهمة.**\n"
+    "🔥 **بالتوفيق يا بطل، أنت لها!**"
 )
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if message.chat.id in ALLOWED_USERS:
-        bot.reply_to(message, WELCOME_MSG)
+        # التنسيق الاحترافي (Markdown)
+        bot.reply_to(message, WELCOME_MSG, parse_mode='Markdown')
     else:
-        bot.reply_to(message, "عذراً، هذا البوت خاص للمشتركين فقط. للتواصل يرجى مراجعة المسؤول.")
+        bot.reply_to(message, "🚫 عذراً، هذا البوت خاص بالمشتركين فقط.")
 
 @app.route('/', methods=['GET'])
 def home():
-    return "البوت يعمل بكفاءة! ✅"
+    return "البوت يعمل بكفاءة عالية! 🚀"
 
 @app.route('/' + BOT_TOKEN, methods=['POST'])
 def getMessage():
